@@ -17,7 +17,8 @@ class EventParser:
         """
         Extracts the event title from the soup.
         """
-        title_tag = soup.find('p', class_='event-title')
+        # Updated selector to match <span class="paragraph event-title">
+        title_tag = soup.find('span', class_='event-title')
         return title_tag.get_text(strip=True) if title_tag else ''
 
     def extract_description(self, soup: BeautifulSoup) -> str:
@@ -52,16 +53,15 @@ class EventParser:
     def extract_location(self, soup: BeautifulSoup) -> str:
         """
         Extracts the event location from the soup by finding the location icon
-        and the neighboring <a> tag.
+        and the neighboring <a> tag in the same <p>.
         """
-        # Use SVG icon path to identify location pin icon. Location text should be it's neighbor.
         location_icon_path = "M12,2C15.31,2 18,4.66 18,7.95C18,12.41 12,19 12,19C12,19 6,12.41 6,7.95C6,4.66 8.69,2 12,2M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M20,19C20,21.21 16.42,23 12,23C7.58,23 4,21.21 4,19C4,17.71 5.22,16.56 7.11,15.83L7.75,16.74C6.67,17.19 6,17.81 6,18.5C6,19.88 8.69,21 12,21C15.31,21 18,19.88 18,18.5C18,17.81 17.33,17.19 16.25,16.74L16.89,15.83C18.78,16.56 20,17.71 20,19Z"
-        for span in soup.find_all('span', class_='v-icon notranslate icon theme--light'):
-            svg = span.find('svg')
-            if svg and svg.find('path') and svg.find('path').get('d') == location_icon_path:
-                parent = span.parent
-                if parent:
-                    a_tag = parent.find('a', href=True)
+        for p in soup.find_all('p', class_='paragraph'):
+            span = p.find('span', class_='v-icon notranslate icon theme--light')
+            if span:
+                svg = span.find('svg')
+                if svg and svg.find('path') and svg.find('path').get('d') == location_icon_path:
+                    a_tag = p.find('a', href=True)
                     if a_tag:
                         return a_tag.get_text(strip=True)
         return ''
@@ -139,9 +139,9 @@ class EventParser:
         and extracts all event details using helper methods.
         Returns a dictionary with all event fields.
         """
-        # Load page w/ Selenium
+        # Load page w/ Selenium, headless mode disabled due to issues with the event page rendering
         options = Options()
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         driver = webdriver.Chrome(options=options)
